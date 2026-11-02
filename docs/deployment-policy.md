@@ -154,6 +154,7 @@ An array of the capability names from
 | `blocked` | string[] | External plugin ids never loaded. |
 | `sideload` | boolean | Allow installing from a manifest URL, zip, directory or project file (default true). |
 | `defaultActive` | string[] | Plugin ids active in a fresh project. |
+| `fileAccess` | Record<string, string[]> | Administrator-allowlisted file paths/patterns per plugin id. |
 
 ### `services`
 
@@ -230,6 +231,10 @@ fresh project. It does not override a saved project's active plugin list and
 does not allow a denied plugin to load. URL updates preserve these deployment
 defaults for later fresh projects. Without a `plugins` section, existing loading
 and activation behavior is unchanged.
+
+`fileAccess` configures an administrator-side allowlist of file paths per plugin
+id (e.g. `{"my-plugin": ["/etc/geolibre/app.cfg"]}`). Only paths explicitly
+listed for a given plugin id are accessible to that plugin.
 
 Plugin policy is client-side enforcement only, not a server security boundary:
 a modified client can bypass it. It does not provide signing or sandboxing.

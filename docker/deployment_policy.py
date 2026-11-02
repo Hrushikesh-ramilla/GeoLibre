@@ -60,6 +60,7 @@ FIELD_KINDS = {
         "blocked": "ids",
         "sideload": "bool",
         "defaultActive": "ids",
+        "fileAccess": "file_access",
     },
     "services": {"builtins": "bool", "catalog": "catalog"},
     "sharing": {"shareUrl": "share", "collabUrl": "collab", "embedOrigins": "origins"},
@@ -438,6 +439,22 @@ def _validate_origins(label, path, value):
     return out
 
 
+def _validate_file_access(label, path, value):
+    if not isinstance(value, Mapping):
+        fail(label, path, "must be an object")
+    seen_keys = set()
+    out = {}
+    for raw_key, raw_list in value.items():
+        if not isinstance(raw_key, str) or not raw_key.strip():
+            fail(label, path, "keys must be nonblank strings")
+        key = raw_key.strip()
+        if key in seen_keys:
+            fail(label, f"{path}.{key}", "is a duplicate key after trimming")
+        seen_keys.add(key)
+        out[key] = _validate_ids(label, f"{path}.{key}", raw_list)
+    return out
+
+
 def _validate_field(label, path, kind, value):
     if kind == "bool":
         if type(value) is not bool:
@@ -453,6 +470,8 @@ def _validate_field(label, path, kind, value):
         return value
     if kind == "ids":
         return _validate_ids(label, path, value)
+    if kind == "file_access":
+        return _validate_file_access(label, path, value)
     if kind == "catalog":
         return _validate_catalog(label, path, value)
     if kind == "origins":

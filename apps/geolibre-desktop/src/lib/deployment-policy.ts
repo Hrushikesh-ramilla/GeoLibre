@@ -39,6 +39,7 @@ export interface PluginsPolicy {
   blocked?: string[];
   sideload?: boolean;
   defaultActive?: string[];
+  fileAccess?: Record<string, string[]>;
 }
 
 /** One curated web-service library entry. */
@@ -218,8 +219,28 @@ function readInterface(v: unknown): Result<InterfacePolicy> {
   return "error" in r ? r : { value: r.value as InterfacePolicy };
 }
 
+function readFileAccess(v: unknown): Result<Record<string, string[]>> {
+  if (!isPlainObject(v)) return err("'fileAccess' must be an object");
+  const result: Record<string, string[]> = {};
+  for (const [key, val] of Object.entries(v)) {
+    const trimmedKey = key.trim();
+    if (!trimmedKey) return err("'fileAccess' keys must be non-blank strings");
+    const listRes = readIdList(val, `fileAccess.${trimmedKey}`);
+    if ("error" in listRes) return listRes;
+    result[trimmedKey] = listRes.value;
+  }
+  return { value: result };
+}
+
 function readPlugins(v: unknown): Result<PluginsPolicy> {
-  const obj = readObject(v, ["registryUrl", "allowed", "blocked", "sideload", "defaultActive"]);
+  const obj = readObject(v, [
+    "registryUrl",
+    "allowed",
+    "blocked",
+    "sideload",
+    "defaultActive",
+    "fileAccess",
+  ]);
   if ("error" in obj) return obj;
   const r = readFields(obj.value, {
     registryUrl: (x) => readNonBlank(x, "registryUrl"),
@@ -227,6 +248,7 @@ function readPlugins(v: unknown): Result<PluginsPolicy> {
     blocked: (x) => readIdList(x, "blocked"),
     sideload: (x) => readBoolean(x, "sideload"),
     defaultActive: (x) => readIdList(x, "defaultActive"),
+    fileAccess: (x) => readFileAccess(x),
   });
   return "error" in r ? r : { value: r.value as PluginsPolicy };
 }
