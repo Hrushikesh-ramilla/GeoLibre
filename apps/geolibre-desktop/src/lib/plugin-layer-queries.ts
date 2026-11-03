@@ -1,4 +1,4 @@
-import { useAppStore, type GeoLibreLayer } from "@geolibre/core";
+import { useAppStore, type GeoLibreLayer, type LayerStyle } from "@geolibre/core";
 import { SKETCHES_SOURCE_KIND } from "@geolibre/plugins/geo-editor-geometry";
 import type { GeoLibreSelection } from "@geolibre/plugins";
 
@@ -60,6 +60,28 @@ export function readDrawnFeatures(layers: GeoLibreLayer[]) {
 }
 
 /**
+ * A layer's active style definition as a deep copy, or throw `No layer with id "…"`.
+ * Returns null if the layer has no style defined. Shared by the plugin API's
+ * `getLayerStyle`.
+ */
+export function readLayerStyle(layers: GeoLibreLayer[], layerId: string): LayerStyle | null {
+  const layer = layers.find((item) => item.id === layerId);
+  if (!layer) throw new Error(`No layer with id "${layerId}"`);
+  return layer.style ? structuredClone(layer.style) : null;
+}
+
+/**
+ * A layer's source definition as a deep copy, or throw `No layer with id "…"`.
+ * Returns an empty object if the layer has no source configuration. Shared by
+ * the plugin API's `getLayerSource`.
+ */
+export function readLayerSource(layers: GeoLibreLayer[], layerId: string): Record<string, unknown> {
+  const layer = layers.find((item) => item.id === layerId);
+  if (!layer) throw new Error(`No layer with id "${layerId}"`);
+  return structuredClone(layer.source ?? {});
+}
+
+/**
  * Build the read-only query methods that `createAppAPI` exposes to plugins.
  * Reads the store on every call rather than closing over a snapshot, so a
  * plugin holding the API sees the map as it is now.
@@ -90,6 +112,10 @@ export function createPluginLayerQueries() {
         })),
     getLayerFeatures: (layerId: string) =>
       readLayerFeatures(useAppStore.getState().layers, layerId),
+    getLayerStyle: (layerId: string) =>
+      readLayerStyle(useAppStore.getState().layers, layerId),
+    getLayerSource: (layerId: string) =>
+      readLayerSource(useAppStore.getState().layers, layerId),
     getSelectedFeatures: () => readPluginSelection().features,
     getSelectedLayerId: () => useAppStore.getState().selectedLayerId,
     getDrawnFeatures: () => readDrawnFeatures(useAppStore.getState().layers),

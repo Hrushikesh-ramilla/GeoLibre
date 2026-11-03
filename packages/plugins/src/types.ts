@@ -21,6 +21,8 @@ import type * as Proj4 from "proj4";
 import type { TemporalLayerAdapter } from "./plugins/temporal-layers";
 import type { GeoLibreToolbarLabel } from "./toolbar-menu-label";
 
+export type { LayerStyle };
+
 export type GeoLibreMapControlPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 /**
@@ -748,6 +750,18 @@ export interface GeoLibreAppAPI {
   removeLayer?: (layerId: string) => void;
   listLayers?: () => GeoLibreLayerSummary[];
   getLayerFeatures?: (layerId: string) => Feature<Geometry | null>[];
+  /**
+   * The style currently applied to a layer, as a deep copy, or null when the
+   * layer has no style definition. Throws when there is no layer with that id.
+   * Typed optional for forward-compatibility with host variants.
+   */
+  getLayerStyle?: (layerId: string) => LayerStyle | null;
+  /**
+   * The source configuration of a layer (e.g. format, URL, tile endpoints, or
+   * connection parameters) as a deep copy. Throws when there is no layer with
+   * that id. Typed optional for forward-compatibility with host variants.
+   */
+  getLayerSource?: (layerId: string) => Record<string, unknown>;
   /**
    * Apply a style written in another format to a layer, like the Layers
    * panel's "Import style": an OGC SLD, a QGIS QML or a Mapbox GL style JSON,

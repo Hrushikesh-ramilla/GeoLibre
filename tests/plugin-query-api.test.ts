@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { useAppStore } from "@geolibre/core";
+import { useAppStore, type LayerStyle } from "@geolibre/core";
 import { SKETCHES_SOURCE_KIND } from "@geolibre/plugins/geo-editor-geometry";
 import type { GeoLibreSelection } from "@geolibre/plugins";
 import { createPluginLayerGroupActions } from "../apps/geolibre-desktop/src/lib/plugin-layer-groups";
@@ -147,6 +147,51 @@ describe("external plugin query API", () => {
     assert.throws(() => app.getLayerFeatures("missing-layer"), {
       message: 'No layer with id "missing-layer"',
     });
+    assert.throws(() => app.getLayerStyle("missing-layer"), {
+      message: 'No layer with id "missing-layer"',
+    });
+    assert.throws(() => app.getLayerSource("missing-layer"), {
+      message: 'No layer with id "missing-layer"',
+    });
+  });
+
+  it("returns detached layer style and source without mutating state", () => {
+    const store = useAppStore.getState();
+    const layerId = store.addGeoJsonLayer("Catchments", {
+      type: "FeatureCollection",
+      features: [],
+    });
+    const app = createPluginLayerQueries();
+    const style = app.getLayerStyle(layerId);
+    assert.ok(style);
+    const originalColor = style.fillColor;
+    style.fillColor = "#ff0000";
+
+    const source = app.getLayerSource(layerId);
+    assert.deepEqual(source, { type: "geojson" });
+    (source as Record<string, unknown>)["customField"] = "mutated";
+
+    const currentLayer = useAppStore.getState().layers.find((l) => l.id === layerId);
+    assert.ok(currentLayer);
+    assert.equal(currentLayer.style.fillColor, originalColor);
+    assert.equal((currentLayer.source as Record<string, unknown>)["customField"], undefined);
+  });
+
+  it("returns null for missing style and empty object for missing source", () => {
+    const store = useAppStore.getState();
+    store.addLayer({
+      id: "bare-layer",
+      name: "Bare Layer",
+      type: "geojson",
+      source: undefined as unknown as Record<string, unknown>,
+      visible: true,
+      opacity: 1,
+      style: undefined as unknown as LayerStyle,
+      metadata: {},
+    });
+    const app = createPluginLayerQueries();
+    assert.equal(app.getLayerStyle("bare-layer"), null);
+    assert.deepEqual(app.getLayerSource("bare-layer"), {});
   });
 
   it("resolves selected features by their array index when ids are absent", () => {

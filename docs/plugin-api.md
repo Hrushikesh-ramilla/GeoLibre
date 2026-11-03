@@ -146,6 +146,8 @@ export interface GeoLibreAppAPI {
   removeLayer?: (layerId: string) => void;
   listLayers?: () => GeoLibreLayerSummary[];
   getLayerFeatures?: (layerId: string) => Feature<Geometry | null>[];
+  getLayerStyle?: (layerId: string) => LayerStyle | null;
+  getLayerSource?: (layerId: string) => Record<string, unknown>;
   // Dress a layer with an SLD, QML or Mapbox GL style. See "Layer styles".
   importLayerStyle?: (
     layerId: string,
@@ -765,8 +767,9 @@ A URL parameter activates only an already-registered (installed) plugin that own
 ## Read-only layer and feature queries
 
 External plugins can inspect the current layer list, a layer's GeoJSON features,
-the current feature selection, and features in GeoEditor's Sketches layers. The
-methods are optional so the same plugin remains compatible with older hosts.
+active styling, source configuration, the current feature selection, and features
+in GeoEditor's Sketches layers. The methods are optional so the same plugin
+remains compatible with older hosts.
 
 ```typescript
 const layers = app.listLayers?.() ?? [];
@@ -775,7 +778,9 @@ const selectedFeatures = app.getSelectedFeatures?.() ?? [];
 
 if (selectedLayerId && app.getLayerFeatures) {
   const layerFeatures = app.getLayerFeatures(selectedLayerId);
-  console.log(layers, layerFeatures, selectedFeatures);
+  const layerStyle = app.getLayerStyle?.(selectedLayerId);
+  const layerSource = app.getLayerSource?.(selectedLayerId);
+  console.log(layers, layerFeatures, selectedFeatures, layerStyle, layerSource);
 }
 
 const drawnFeatures = app.getDrawnFeatures?.() ?? [];
@@ -784,8 +789,11 @@ const drawnFeatures = app.getDrawnFeatures?.() ?? [];
 `getSelectedFeatures` returns every selected feature in the selected layer, not
 only the most recently selected feature. Features without a GeoJSON `id` are
 matched using their zero-based array index converted to a string. An empty
-selection returns an empty array. `getLayerFeatures` throws when the layer id is
-unknown and returns an empty array for a layer that has no GeoJSON features.
+selection returns an empty array. `getLayerFeatures`, `getLayerStyle`, and
+`getLayerSource` throw when the layer id is unknown. `getLayerFeatures` returns
+an empty array for a layer that has no GeoJSON features, `getLayerStyle` returns
+`null` if the layer has no style, and `getLayerSource` returns an empty object
+if the layer has no source configuration.
 
 Selection subscriptions fire after the selected layer or selected feature-id
 array changes. Keep and call the returned unsubscribe function during plugin
